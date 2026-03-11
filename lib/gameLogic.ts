@@ -1,17 +1,16 @@
-import { Board, Direction, SlideResult, MoveResult, NewTile } from './gameTypes';
+import { Board, Direction, SlideResult, MoveResult, NewTile, GridSize } from './gameTypes';
 
-const SIZE = 4;
-
-export function createEmptyBoard(): Board {
-  return Array(SIZE)
+export function createEmptyBoard(size: GridSize = 4): Board {
+  return Array(size)
     .fill(null)
-    .map(() => Array(SIZE).fill(0));
+    .map(() => Array(size).fill(0));
 }
 
 export function addRandomTile(board: Board): NewTile | null {
+  const size = board.length;
   const empty: NewTile[] = [];
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       if (board[r][c] === 0) {
         empty.push({ r, c });
       }
@@ -25,7 +24,7 @@ export function addRandomTile(board: Board): NewTile | null {
   return { r, c };
 }
 
-function slide(row: number[]): SlideResult {
+function slide(row: number[], size: number): SlideResult {
   let arr = row.filter((v) => v !== 0);
   const merged: number[] = [];
 
@@ -38,18 +37,19 @@ function slide(row: number[]): SlideResult {
   }
 
   arr = arr.filter((v) => v !== 0);
-  while (arr.length < SIZE) arr.push(0);
+  while (arr.length < size) arr.push(0);
 
   return { result: arr, merged };
 }
 
 export function moveLeft(board: Board): MoveResult {
+  const size = board.length;
   let moved = false;
   const mergedCells: Array<{ r: number; c: number }> = [];
 
-  for (let r = 0; r < SIZE; r++) {
+  for (let r = 0; r < size; r++) {
     const original = [...board[r]];
-    const { result, merged } = slide(board[r]);
+    const { result, merged } = slide(board[r], size);
     board[r] = result;
 
     if (original.join() !== result.join()) moved = true;
@@ -61,35 +61,37 @@ export function moveLeft(board: Board): MoveResult {
 }
 
 export function moveRight(board: Board): MoveResult {
+  const size = board.length;
   let moved = false;
   const mergedCells: Array<{ r: number; c: number }> = [];
 
-  for (let r = 0; r < SIZE; r++) {
+  for (let r = 0; r < size; r++) {
     const original = [...board[r]];
     const reversed = [...board[r]].reverse();
-    const { result, merged } = slide(reversed);
+    const { result, merged } = slide(reversed, size);
     board[r] = result.reverse();
 
     if (original.join() !== board[r].join()) moved = true;
 
-    merged.forEach((idx) => mergedCells.push({ r, c: SIZE - 1 - idx }));
+    merged.forEach((idx) => mergedCells.push({ r, c: size - 1 - idx }));
   }
 
   return { moved, mergedCells };
 }
 
 export function moveUp(board: Board): MoveResult {
+  const size = board.length;
   let moved = false;
   const mergedCells: Array<{ r: number; c: number }> = [];
 
-  for (let c = 0; c < SIZE; c++) {
+  for (let c = 0; c < size; c++) {
     const col: number[] = [];
-    for (let r = 0; r < SIZE; r++) col.push(board[r][c]);
+    for (let r = 0; r < size; r++) col.push(board[r][c]);
 
     const original = [...col];
-    const { result, merged } = slide(col);
+    const { result, merged } = slide(col, size);
 
-    for (let r = 0; r < SIZE; r++) board[r][c] = result[r];
+    for (let r = 0; r < size; r++) board[r][c] = result[r];
 
     if (original.join() !== result.join()) moved = true;
 
@@ -100,23 +102,24 @@ export function moveUp(board: Board): MoveResult {
 }
 
 export function moveDown(board: Board): MoveResult {
+  const size = board.length;
   let moved = false;
   const mergedCells: Array<{ r: number; c: number }> = [];
 
-  for (let c = 0; c < SIZE; c++) {
+  for (let c = 0; c < size; c++) {
     const col: number[] = [];
-    for (let r = 0; r < SIZE; r++) col.push(board[r][c]);
+    for (let r = 0; r < size; r++) col.push(board[r][c]);
 
     const original = [...col];
     const reversed = [...col].reverse();
-    const { result, merged } = slide(reversed);
+    const { result, merged } = slide(reversed, size);
     const finalCol = result.reverse();
 
-    for (let r = 0; r < SIZE; r++) board[r][c] = finalCol[r];
+    for (let r = 0; r < size; r++) board[r][c] = finalCol[r];
 
     if (original.join() !== finalCol.join()) moved = true;
 
-    merged.forEach((idx) => mergedCells.push({ r: SIZE - 1 - idx, c }));
+    merged.forEach((idx) => mergedCells.push({ r: size - 1 - idx, c }));
   }
 
   return { moved, mergedCells };
@@ -138,14 +141,16 @@ export function handleMove(board: Board, direction: Direction): MoveResult {
 }
 
 export function checkGameOver(board: Board): boolean {
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
+  const size = board.length;
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       if (board[r][c] === 0) return false;
-      if (c < SIZE - 1 && board[r][c] === board[r][c + 1]) return false;
-      if (r < SIZE - 1 && board[r][c] === board[r + 1][c]) return false;
+      if (c < size - 1 && board[r][c] === board[r][c + 1]) return false;
+      if (r < size - 1 && board[r][c] === board[r + 1][c]) return false;
     }
   }
   return true;
 }
 
-export const BOARD_SIZE = SIZE;
+export const BOARD_SIZE = 4;
+

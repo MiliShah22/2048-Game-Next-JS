@@ -1,11 +1,11 @@
 'use client';
 
 import { GameCell } from './GameCell';
-import { Board, NewTile } from '@/lib/gameTypes';
-import { BOARD_SIZE } from '@/lib/gameLogic';
+import { Board, NewTile, GridSize } from '@/lib/gameTypes';
 
 interface GameBoardProps {
   board: Board;
+  gridSize: GridSize;
   newTile: NewTile | null;
   mergedCells: Array<{ r: number; c: number }>;
   onTouchStart: (e: React.TouchEvent<HTMLDivElement>) => void;
@@ -14,6 +14,7 @@ interface GameBoardProps {
 
 export function GameBoard({
   board,
+  gridSize,
   newTile,
   mergedCells,
   onTouchStart,
@@ -26,10 +27,13 @@ export function GameBoard({
       aria-label="2048 game board"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      style={{
+        gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+      }}
     >
-      {Array.from({ length: BOARD_SIZE }).map((_, r) =>
-        Array.from({ length: BOARD_SIZE }).map((_, c) => {
-          const value = board[r][c];
+      {Array.from({ length: gridSize }).map((_, r) =>
+        Array.from({ length: gridSize }).map((_, c) => {
+          const value = board[r]?.[c] ?? 0;
           const isNew = newTile ? newTile.r === r && newTile.c === c : false;
           const isMerged = mergedCells.some((m) => m.r === r && m.c === c);
 
@@ -46,3 +50,4 @@ export function GameBoard({
     </div>
   );
 }
+

@@ -1,14 +1,25 @@
 'use client';
 
+import { GridSize } from '@/lib/gameTypes';
+
 interface HeaderProps {
   score: number;
   best: number;
+  gridSize: GridSize;
+  onBack: () => void;
 }
 
-export function Header({ score, best }: HeaderProps) {
+export function Header({ score, best, gridSize, onBack }: HeaderProps) {
   return (
     <div className="header">
-      <h1 className="title">2048</h1>
+      <button className="back-btn" onClick={onBack} aria-label="Back to menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <div className="header-center">
+        <span className="current-grid-label">{gridSize}x{gridSize}</span>
+      </div>
       <div className="scores">
         <div className="score-box">
           <div className="score-label">Score</div>
@@ -22,3 +33,4 @@ export function Header({ score, best }: HeaderProps) {
     </div>
   );
 }
+

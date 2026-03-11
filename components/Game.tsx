@@ -1,19 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Header } from './Header';
 import { GameBoard } from './GameBoard';
 import { GameOverOverlay } from './GameOverOverlay';
+import { MenuScreen } from './MenuScreen';
 import {
   createEmptyBoard,
   addRandomTile,
   handleMove,
   checkGameOver,
-  BOARD_SIZE,
 } from '@/lib/gameLogic';
-import { Board, NewTile, Direction } from '@/lib/gameTypes';
+import { Board, NewTile, Direction, GridSize } from '@/lib/gameTypes';
 
 export function Game() {
+  const [showMenu, setShowMenu] = useState(true);
+  const [gridSize, setGridSize] = useState<GridSize>(4);
   const [board, setBoard] = useState<Board>([]);
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
@@ -24,27 +26,29 @@ export function Game() {
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
 
-  // Initialize game on mount
+  // Use refs to avoid stale closures
+  const gameStateRef = useRef({ gameOver, showMenu, board, score, best, won, gridSize });
+  useEffect(() => {
+    gameStateRef.current = { gameOver, showMenu, board, score, best, won, gridSize };
+  }, [gameOver, showMenu, board, score, best, won, gridSize]);
+
+  // Initialize best score on mount
   useEffect(() => {
     setMounted(true);
-    const savedBest = localStorage.getItem('best2048');
+    const savedBest = localStorage.getItem('best2048Dynamic');
     const initialBest = savedBest ? parseInt(savedBest, 10) : 0;
     setBest(initialBest);
-
-    const newBoard = createEmptyBoard();
-    const tile1 = addRandomTile(newBoard);
-    addRandomTile(newBoard);
-
-    setBoard(newBoard);
-    setScore(0);
-    setGameOver(false);
-    setWon(false);
-    setNewTile(tile1);
-    setMergedCells([]);
   }, []);
 
-  const handleNewGame = () => {
-    const newBoard = createEmptyBoard();
+  const handleSelectSize = (size: GridSize) => {
+    setGridSize(size);
+    setShowMenu(false);
+    startNewGame(size);
+  };
+
+  const startNewGame = (size?: GridSize) => {
+    const boardSize = size || gridSize;
+    const newBoard = createEmptyBoard(boardSize);
     const tile1 = addRandomTile(newBoard);
     addRandomTile(newBoard);
 
@@ -56,16 +60,27 @@ export function Game() {
     setMergedCells([]);
   };
 
-  const processMove = (direction: Direction) => {
-    if (gameOver) return;
+  const handleNewGame = () => {
+    startNewGame();
+  };
 
-    const boardCopy = board.map((row) => [...row]);
+  const handleBackToMenu = () => {
+    setShowMenu(true);
+  };
+
+  const processMove = useCallback((direction: Direction) => {
+    const { gameOver: isGameOver, showMenu: isMenu, board: currentBoard, score: currentScore, best: currentBest, won: hasWon } = gameStateRef.current;
+
+    if (isGameOver || isMenu) return;
+    if (!currentBoard || currentBoard.length === 0) return;
+
+    const boardCopy = currentBoard.map((row) => [...row]);
     const result = handleMove(boardCopy, direction);
 
     if (!result.moved) return;
 
-    let newScore = score;
-    let newWon = won;
+    let newScore = currentScore;
+    let newWon = hasWon;
 
     // Calculate score from merged cells
     result.mergedCells.forEach(({ r, c }) => {
@@ -83,24 +98,27 @@ export function Game() {
     setWon(newWon);
 
     // Update best score
-    if (newScore > best) {
+    if (newScore > currentBest) {
       setBest(newScore);
-      localStorage.setItem('best2048', newScore.toString());
+      localStorage.setItem('best2048Dynamic', newScore.toString());
     }
 
     // Check game states
     setTimeout(() => {
-      if (newWon && !gameOver) {
+      if (newWon && !isGameOver) {
         setGameOver(true);
       } else if (checkGameOver(boardCopy)) {
         setGameOver(true);
       }
     }, 300);
-  };
+  }, []);
 
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const { showMenu: isMenu } = gameStateRef.current;
+      if (isMenu) return;
+
       const keyMap: Record<string, Direction> = {
         ArrowUp: 'up',
         ArrowDown: 'down',
@@ -118,13 +136,14 @@ export function Game() {
 
       if (keyMap[e.key]) {
         e.preventDefault();
+        e.stopPropagation();
         processMove(keyMap[e.key]);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameOver, score, best, won, board]);
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [processMove]);
 
   // Touch controls
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -157,13 +176,23 @@ export function Game() {
 
   if (!mounted) return null;
 
+  if (showMenu) {
+    return <MenuScreen onSelectSize={handleSelectSize} />;
+  }
+
   return (
     <div className="game-container">
-      <Header score={score} best={best} />
+      <Header
+        score={score}
+        best={best}
+        gridSize={gridSize}
+        onBack={handleBackToMenu}
+      />
 
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', width: '80%', height: 'auto' }}>
         <GameBoard
           board={board}
+          gridSize={gridSize}
           newTile={newTile}
           mergedCells={mergedCells}
           onTouchStart={handleTouchStart}
@@ -173,12 +202,9 @@ export function Game() {
           isActive={gameOver}
           won={won}
           onPlayAgain={handleNewGame}
+          onMenu={handleBackToMenu}
         />
       </div>
-
-      <button className="btn" onClick={handleNewGame} aria-label="Start new game">
-        New Game
-      </button>
 
       <p className="instructions">
         Use <span className="key">↑</span> <span className="key">↓</span>{' '}
@@ -188,3 +214,4 @@ export function Game() {
     </div>
   );
 }
+
