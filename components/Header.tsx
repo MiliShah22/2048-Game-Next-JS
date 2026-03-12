@@ -7,9 +7,10 @@ interface HeaderProps {
   best: number;
   gridSize: GridSize;
   onBack: () => void;
+  onPause?: () => void;
 }
 
-export function Header({ score, best, gridSize, onBack }: HeaderProps) {
+export function Header({ score, best, gridSize, onBack, onPause }: HeaderProps) {
   return (
     <div className="header">
       <button className="back-btn" onClick={onBack} aria-label="Back to menu">
@@ -19,6 +20,19 @@ export function Header({ score, best, gridSize, onBack }: HeaderProps) {
       </button>
       <div className="header-center">
         <span className="current-grid-label">{gridSize}x{gridSize}</span>
+      </div>
+      <div className="header-actions">
+        <button
+          className="pause-btn"
+          onClick={onPause}
+          aria-label="Pause game"
+          title="Pause (P)"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+        </button>
       </div>
       <div className="scores">
         <div className="score-box score-anim">

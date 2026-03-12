@@ -1064,15 +1064,15 @@
 .select-prompt {
   font-size: 1.15rem;
   color: var(--muted);
-  margin-bottom: 36px;
+  margin-bottom: 24px;
   font-weight: 500;
 }
 
 .grid-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 16px;
-  max-width: 520px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: clamp(12px, 4vw, 12px);
+  max-width: 580px;
   margin: 0 auto 52px;
   padding: 0 10px;
 }
@@ -1088,11 +1088,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .grid-option::before {
@@ -1146,26 +1146,26 @@
 
 .option-size {
   font-family: 'Outfit', sans-serif;
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: clamp(1.6rem, 5vw, 1.9rem);
+  font-weight: 700;
   color: var(--fg);
   position: relative;
   z-index: 1;
 }
 
 .option-label {
-  font-size: 0.75rem;
+  font-size: clamp(0.65rem, 2.5vw, 0.8rem);
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   position: relative;
   z-index: 1;
   font-weight: 600;
 }
 
 .option-difficulty {
-  font-size: 0.7rem;
-  padding: 5px 10px;
+  font-size: clamp(0.6rem, 2.2vw, 0.75rem);
+  padding: 4px 8px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   color: var(--muted);

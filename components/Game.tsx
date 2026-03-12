@@ -11,7 +11,8 @@ import {
   handleMove,
   checkGameOver,
 } from '@/lib/gameLogic';
-import { Board, NewTile, Direction, GridSize, MovingTile } from '@/lib/gameTypes';
+import { Board, NewTile, Direction, GridSize, MovingTile, GameState } from '@/lib/gameTypes';
+import { saveGame, loadGame, clearSave } from '@/lib/gamePersistence';
 
 export function Game() {
   const [showMenu, setShowMenu] = useState(true);
@@ -34,6 +35,31 @@ export function Game() {
     gameStateRef.current = { gameOver, showMenu, board, score, best, won, gridSize };
   }, [gameOver, showMenu, board, score, best, won, gridSize]);
 
+  // Auto-save on state change
+  useEffect(() => {
+    if (!showMenu && board.length > 0) {
+      const timeoutId = setTimeout(() => {
+        saveCurrentGame();
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [board, score, gameOver, won, gridSize, showMenu]);
+
+  // Save on page visibility change / pause
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && !showMenu && board.length > 0) {
+        saveCurrentGame();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', saveCurrentGame);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', saveCurrentGame);
+    };
+  }, [board.length, showMenu]);
+
   // Initialize best score on mount
   useEffect(() => {
     setMounted(true);
@@ -42,17 +68,41 @@ export function Game() {
     setBest(initialBest);
   }, []);
 
-  const handleSelectSize = (size: GridSize) => {
+  const handleNewSize = (size: GridSize) => {
     setGridSize(size);
     setShowMenu(false);
     startNewGame(size);
   };
 
-  const startNewGame = (size?: GridSize) => {
+  const handleContinueSize = (size: GridSize) => {
+    setGridSize(size);
+    setShowMenu(false);
+    startNewGame(size);
+  };
+
+  const startNewGame = (size?: GridSize, forceNew: boolean = false) => {
     const boardSize = size || gridSize;
+    if (!forceNew) {
+      const savedState = loadGame(boardSize);
+      if (savedState) {
+        setBoard(savedState.board);
+        setScore(savedState.score);
+        setGameOver(savedState.gameOver);
+        setWon(savedState.won);
+        // Add initial tiles for resume
+        setTimeout(() => {
+          const tile1 = addRandomTile(savedState.board);
+          setNewTile(tile1);
+          setMergedCells([]);
+        }, 100);
+        return;
+      }
+    }
+    // New game fallback
     const newBoard = createEmptyBoard(boardSize);
     const tile1 = addRandomTile(newBoard);
     addRandomTile(newBoard);
+    clearSave(boardSize);
 
     setBoard(newBoard);
     setScore(0);
@@ -63,10 +113,15 @@ export function Game() {
   };
 
   const handleNewGame = () => {
-    startNewGame();
+    startNewGame(undefined, true);
+  };
+
+  const saveCurrentGame = () => {
+    saveGame(gridSize, board, score, gameOver, won);
   };
 
   const handleBackToMenu = () => {
+    saveCurrentGame();
     setShowMenu(true);
   };
 
@@ -189,7 +244,13 @@ export function Game() {
   if (!mounted) return null;
 
   if (showMenu) {
-    return <MenuScreen onSelectSize={handleSelectSize} />;
+    return (
+      <MenuScreen
+        onNewGame={handleNewSize}
+        onContinue={handleContinueSize}
+        gridSize={gridSize}
+      />
+    );
   }
 
   return (
@@ -199,6 +260,7 @@ export function Game() {
         best={best}
         gridSize={gridSize}
         onBack={handleBackToMenu}
+        onPause={handleBackToMenu}
       />
 
       <div style={{ position: 'relative', width: '80%', height: 'auto' }}>
