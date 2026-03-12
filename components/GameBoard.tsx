@@ -1,13 +1,14 @@
 'use client';
 
 import { GameCell } from './GameCell';
-import { Board, NewTile, GridSize } from '@/lib/gameTypes';
+import { Board, NewTile, GridSize, MovingTile } from '@/lib/gameTypes';
 
 interface GameBoardProps {
   board: Board;
   gridSize: GridSize;
   newTile: NewTile | null;
   mergedCells: Array<{ r: number; c: number }>;
+  movingTiles: Array<MovingTile>;
   onTouchStart: (e: React.TouchEvent<HTMLDivElement>) => void;
   onTouchEnd: (e: React.TouchEvent<HTMLDivElement>) => void;
 }
@@ -17,6 +18,7 @@ export function GameBoard({
   gridSize,
   newTile,
   mergedCells,
+  movingTiles,
   onTouchStart,
   onTouchEnd,
 }: GameBoardProps) {
@@ -36,6 +38,8 @@ export function GameBoard({
           const value = board[r]?.[c] ?? 0;
           const isNew = newTile ? newTile.r === r && newTile.c === c : false;
           const isMerged = mergedCells.some((m) => m.r === r && m.c === c);
+          const movingTile = movingTiles.find(t => t.toR === r && t.toC === c);
+          const isMovingFromHere = movingTiles.some(t => t.fromR === r && t.fromC === c);
 
           return (
             <GameCell
@@ -43,6 +47,8 @@ export function GameBoard({
               value={value}
               isNew={isNew}
               isMerged={isMerged}
+              movingTile={movingTile}
+              isMovingFromHere={isMovingFromHere}
             />
           );
         })

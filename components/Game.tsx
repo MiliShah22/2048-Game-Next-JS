@@ -11,7 +11,7 @@ import {
   handleMove,
   checkGameOver,
 } from '@/lib/gameLogic';
-import { Board, NewTile, Direction, GridSize } from '@/lib/gameTypes';
+import { Board, NewTile, Direction, GridSize, MovingTile } from '@/lib/gameTypes';
 
 export function Game() {
   const [showMenu, setShowMenu] = useState(true);
@@ -23,7 +23,9 @@ export function Game() {
   const [won, setWon] = useState(false);
   const [newTile, setNewTile] = useState<NewTile | null>(null);
   const [mergedCells, setMergedCells] = useState<Array<{ r: number; c: number }>>([]);
+  const [movingTiles, setMovingTiles] = useState<Array<MovingTile>>([]);
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+  const [swipeTrail, setSwipeTrail] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   // Use refs to avoid stale closures
@@ -95,6 +97,8 @@ export function Game() {
     setScore(newScore);
     setNewTile(tile);
     setMergedCells(result.mergedCells);
+    // Clear moving tiles after animation (200ms)
+    setTimeout(() => setMovingTiles([]), 200);
     setWon(newWon);
 
     // Update best score
@@ -163,14 +167,22 @@ export function Game() {
     const dy = touchEnd.y - touchStart.y;
     const minSwipe = 30;
 
+    let direction: Direction | null = null;
     if (Math.abs(dx) > Math.abs(dy)) {
       if (Math.abs(dx) > minSwipe) {
-        processMove(dx > 0 ? 'right' : 'left');
+        direction = dx > 0 ? 'right' : 'left';
+        setSwipeTrail(direction);
       }
     } else {
       if (Math.abs(dy) > minSwipe) {
-        processMove(dy > 0 ? 'down' : 'up');
+        direction = dy > 0 ? 'down' : 'up';
+        setSwipeTrail(direction);
       }
+    }
+
+    if (direction) {
+      processMove(direction);
+      setTimeout(() => setSwipeTrail(null), 300);
     }
   };
 
@@ -190,11 +202,13 @@ export function Game() {
       />
 
       <div style={{ position: 'relative', width: '80%', height: 'auto' }}>
+        <div className={`swipe-indicator ${swipeTrail || ''}`} />
         <GameBoard
           board={board}
           gridSize={gridSize}
           newTile={newTile}
           mergedCells={mergedCells}
+          movingTiles={movingTiles}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         />

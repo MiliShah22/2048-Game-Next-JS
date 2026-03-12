@@ -21,13 +21,17 @@ export function Header({ score, best, gridSize, onBack }: HeaderProps) {
         <span className="current-grid-label">{gridSize}x{gridSize}</span>
       </div>
       <div className="scores">
-        <div className="score-box">
+        <div className="score-box score-anim">
           <div className="score-label">Score</div>
-          <div className="score-value">{score}</div>
+          <div className="score-value" data-score={score}>
+            {score.toLocaleString()}
+          </div>
         </div>
         <div className="score-box">
           <div className="score-label">Best</div>
-          <div className="score-value">{best}</div>
+          <div className="score-value best-score" data-best={best}>
+            {best.toLocaleString()}
+          </div>
         </div>
       </div>
     </div>

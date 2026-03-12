@@ -17,9 +17,10 @@ interface MenuScreenProps {
 export function MenuScreen({ onSelectSize }: MenuScreenProps) {
     return (
         <div className="menu-screen">
-            <div className="menu-content">
+            <div className="menu-content" style={{ top: '15px' }}>
                 <div className="logo-section">
                     <h1 className="logo-title">2048</h1>
+                    <div className="logo-glow"></div>
                     <p className="logo-subtitle">Dynamic Edition</p>
                 </div>
 
@@ -45,7 +46,7 @@ export function MenuScreen({ onSelectSize }: MenuScreenProps) {
                     Use <kbd>Arrow Keys</kbd> or swipe to move tiles
                 </p>
             </div>
-        </div>
+        </div >
     );
 }
 

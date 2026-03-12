@@ -17,6 +17,16 @@ export interface NewTile {
   c: number;
 }
 
+export interface MovingTile {
+  id: string;
+  fromR: number;
+  fromC: number;
+  toR: number;
+  toC: number;
+  value: number;
+  mergeTarget?: { r: number; c: number };
+}
+
 export interface GameState {
   board: Board;
   score: number;
