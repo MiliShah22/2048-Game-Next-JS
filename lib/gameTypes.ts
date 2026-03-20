@@ -34,6 +34,7 @@ export interface GameState {
   gameOver: boolean;
   won: boolean;
   gridSize: GridSize;
+  soundEnabled?: boolean;
 }
 
 

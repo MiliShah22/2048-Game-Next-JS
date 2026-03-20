@@ -40,9 +40,10 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
+.night {
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.99 0 0);
+
   --card: oklch(0.145 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
@@ -66,6 +67,37 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);
+}
+
+.day {
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.2 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0 0);
+  --primary: oklch(0.65 0.15 200);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.25 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --accent: oklch(0.8 0.1 220);
+  --accent-foreground: oklch(0.2 0 0);
+  --destructive: oklch(0.6 0.2 20);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.98 0 0);
+  --ring: oklch(0.7 0 0);
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.15 0 0);
+}
+
+data-[theme=aurora] {
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(1 0 0);
+  --bg: linear-gradient(135deg, #0a0a0f 0%, #1a0a2f 50%, #0f1a2f 100%);
+
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -130,7 +162,50 @@
   --cell-empty: rgba(255, 255, 255, 0.03);
   --glass: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
+  --bg: #0a0a0f;
+  --fg: #e8e8ed;
+  --muted: #6b6b80;
+  --accent: #22d9a0;
+  --accent-glow: rgba(34, 217, 160, 0.4);
+  --card: rgba(22, 22, 31, 0.8);
+  --card-solid: #16161f;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+  --grid-bg: rgba(26, 26, 36, 0.6);
+  --cell-empty: rgba(255, 255, 255, 0.03);
 }
+
+.day {
+  --bg: #f8fafc;
+  --fg: #1e293b;
+  --muted: #64748b;
+  --accent: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.3);
+  --card: rgba(255, 255, 255, 0.9);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.12);
+  --grid-bg: rgba(203, 213, 225, 0.5);
+  --cell-empty: rgba(0, 0, 0, 0.02);
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+}
+
+.night {
+  --bg: #000;
+  --fg: #f0f0f0;
+  --muted: #a0a0a0;
+  --accent: #22d9a0;
+  --accent-glow: rgba(34, 217, 160, 0.5);
+  --card: rgba(10, 10, 15, 0.9);
+  --border: rgba(255, 255, 255, 0.05);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --grid-bg: rgba(15, 15, 25, 0.8);
+  --cell-empty: rgba(255, 255, 255, 0.01);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.06);
+}
+
+/* Removed aurora theme per user request */
 
 @layer base {
   * {
@@ -148,6 +223,8 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y pinch-zoom;
   }
+
+  /* Removed aurora body::before effect */
 
   body::before {
     content: '';
@@ -487,6 +564,9 @@
   border-radius: 20px;
   padding: 12px;
   display: grid;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+
   gap: 6px;
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.5),
@@ -643,12 +723,12 @@
 
 @keyframes slideIn {
   from {
-    transform: translateZ(0) scale(1.1);
+    transform: translateZ(-100px) rotateY(90deg) scale(1.1);
     opacity: 0;
   }
 
   to {
-    transform: translateZ(0) scale(1);
+    transform: translateZ(0) rotateY(0deg) scale(1);
     opacity: 1;
   }
 }
@@ -656,31 +736,42 @@
 
 @keyframes popIn {
   0% {
-    transform: scale(0);
+    transform: scale(0) rotateY(-180deg) translateZ(-50px);
     opacity: 0;
+    filter: drop-shadow(0 0 0 transparent);
   }
 
-  60% {
-    transform: scale(1.15);
+  50% {
+    transform: scale(1.2) rotateY(-90deg) translateZ(-25px);
+    opacity: 0.8;
+    filter: drop-shadow(0 0 30px var(--accent-glow));
   }
 
   100% {
-    transform: scale(1);
+    transform: scale(1) rotateY(0deg) translateZ(0);
     opacity: 1;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
   }
 }
 
 @keyframes mergePulse {
   0% {
-    transform: scale(1);
+    transform: scale(1) rotateX(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+
+  25% {
+    transform: scale(1.1) rotateX(180deg);
   }
 
   50% {
-    transform: scale(1.12);
+    transform: scale(1.25) rotateX(360deg);
+    filter: drop-shadow(0 0 40px var(--accent-glow));
   }
 
   100% {
-    transform: scale(1);
+    transform: scale(1) rotateX(0deg);
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.4));
   }
 }
 

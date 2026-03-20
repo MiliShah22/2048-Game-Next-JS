@@ -13,6 +13,8 @@ import {
 } from '@/lib/gameLogic';
 import { Board, NewTile, Direction, GridSize, MovingTile, GameState } from '@/lib/gameTypes';
 import { saveGame, loadGame, clearSave } from '@/lib/gamePersistence';
+import { audio } from '@/lib/audioManager';
+import { Volume2, VolumeX } from 'lucide-react';
 
 export function Game() {
   const [showMenu, setShowMenu] = useState(true);
@@ -27,13 +29,14 @@ export function Game() {
   const [movingTiles, setMovingTiles] = useState<Array<MovingTile>>([]);
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
   const [swipeTrail, setSwipeTrail] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   // Use refs to avoid stale closures
   const gameStateRef = useRef({ gameOver, showMenu, board, score, best, won, gridSize });
   useEffect(() => {
-    gameStateRef.current = { gameOver, showMenu, board, score, best, won, gridSize };
-  }, [gameOver, showMenu, board, score, best, won, gridSize]);
+    gameStateRef.current = { gameOver, showMenu, board, score, best, won, gridSize, soundEnabled };
+  }, [gameOver, showMenu, board, score, best, won, gridSize, soundEnabled]);
 
   // Auto-save on state change
   useEffect(() => {
@@ -43,7 +46,7 @@ export function Game() {
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [board, score, gameOver, won, gridSize, showMenu]);
+  }, [board, score, gameOver, won, gridSize, soundEnabled, showMenu]);
 
   // Save on page visibility change / pause
   useEffect(() => {
@@ -60,13 +63,15 @@ export function Game() {
     };
   }, [board.length, showMenu]);
 
-  // Initialize best score on mount
+  // Initialize best score on mount & audio
   useEffect(() => {
+    if (mounted) return;
     setMounted(true);
     const savedBest = localStorage.getItem('best2048Dynamic');
     const initialBest = savedBest ? parseInt(savedBest, 10) : 0;
     setBest(initialBest);
-  }, []);
+    audio.setEnabled(soundEnabled);
+  }, []); // Note: soundEnabled defaults true
 
   const handleNewSize = (size: GridSize) => {
     setGridSize(size);
@@ -75,9 +80,25 @@ export function Game() {
   };
 
   const handleContinueSize = (size: GridSize) => {
-    setGridSize(size);
-    setShowMenu(false);
-    startNewGame(size);
+    const savedState = loadGame(size);
+    if (savedState) {
+      setGridSize(size);
+      setShowMenu(false);
+      setBoard(savedState.board);
+      setScore(savedState.score);
+      setGameOver(savedState.gameOver);
+      setWon(savedState.won);
+      if (savedState.soundEnabled !== undefined) {
+        setSoundEnabled(savedState.soundEnabled);
+        audio.setEnabled(savedState.soundEnabled);
+      }
+      // Resume - don't force new tiles
+      setNewTile(null);
+      setMergedCells([]);
+      return;
+    }
+    // Fallback to new if no save
+    handleNewSize(size);
   };
 
   const startNewGame = (size?: GridSize, forceNew: boolean = false) => {
@@ -89,6 +110,10 @@ export function Game() {
         setScore(savedState.score);
         setGameOver(savedState.gameOver);
         setWon(savedState.won);
+        if (savedState.soundEnabled !== undefined) {
+          setSoundEnabled(savedState.soundEnabled);
+          audio.setEnabled(savedState.soundEnabled);
+        }
         // Add initial tiles for resume
         setTimeout(() => {
           const tile1 = addRandomTile(savedState.board);
@@ -117,7 +142,7 @@ export function Game() {
   };
 
   const saveCurrentGame = () => {
-    saveGame(gridSize, board, score, gameOver, won);
+    saveGame(gridSize, board, score, gameOver, won, soundEnabled);
   };
 
   const handleBackToMenu = () => {
@@ -136,13 +161,17 @@ export function Game() {
 
     if (!result.moved) return;
 
+    audio.play('swipe');
+
     let newScore = currentScore;
     let newWon = hasWon;
 
     // Calculate score from merged cells
     result.mergedCells.forEach(({ r, c }) => {
-      newScore += boardCopy[r][c];
-      if (boardCopy[r][c] === 2048 && !newWon) {
+      const tileValue = boardCopy[r][c];
+      newScore += tileValue;
+      audio.play('merge', { pitch: Math.log2(tileValue) / 4 });
+      if (tileValue === 2048 && !newWon) {
         newWon = true;
       }
     });
@@ -152,6 +181,7 @@ export function Game() {
     setScore(newScore);
     setNewTile(tile);
     setMergedCells(result.mergedCells);
+    audio.play('spawn');
     // Clear moving tiles after animation (200ms)
     setTimeout(() => setMovingTiles([]), 200);
     setWon(newWon);
@@ -166,8 +196,10 @@ export function Game() {
     setTimeout(() => {
       if (newWon && !isGameOver) {
         setGameOver(true);
+        audio.play('win');
       } else if (checkGameOver(boardCopy)) {
         setGameOver(true);
+        audio.play('gameover');
       }
     }, 300);
   }, []);
@@ -259,8 +291,15 @@ export function Game() {
         score={score}
         best={best}
         gridSize={gridSize}
+        soundEnabled={soundEnabled}
         onBack={handleBackToMenu}
         onPause={handleBackToMenu}
+        onSoundToggle={() => {
+          const newEnabled = !soundEnabled;
+          setSoundEnabled(newEnabled);
+          audio.setEnabled(newEnabled);
+          saveGame(gridSize, board, score, gameOver, won, newEnabled);
+        }}
       />
 
       <div style={{ position: 'relative', width: '80%', height: 'auto' }}>

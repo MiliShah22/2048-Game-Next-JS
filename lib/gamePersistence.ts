@@ -9,7 +9,8 @@ export function saveGame(
     board: Board,
     score: number,
     gameOver: boolean,
-    won: boolean
+    won: boolean,
+    soundEnabled = true
 ): void {
     const key = getSaveKey(gridSize);
     const state: Omit<GameState, 'best'> = {
@@ -18,6 +19,7 @@ export function saveGame(
         gameOver,
         won,
         gridSize,
+        soundEnabled,
     };
     localStorage.setItem(key, JSON.stringify(state));
 }
