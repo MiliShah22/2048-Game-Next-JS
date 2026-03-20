@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { MovingTile } from '@/lib/gameTypes';
 
 interface GameCellProps {
@@ -10,7 +11,7 @@ interface GameCellProps {
   isMovingFromHere?: boolean;
 }
 
-export function GameCell({ value, isNew, isMerged, movingTile, isMovingFromHere }: GameCellProps) {
+const GameCell = React.memo(({ value, isNew, isMerged, movingTile, isMovingFromHere }: GameCellProps) => {
   const getCellClass = (val: number): string => {
     if (val === 0) return 'cell-empty';
     if (val <= 2048) return `cell-${val}`;
@@ -38,4 +39,9 @@ export function GameCell({ value, isNew, isMerged, movingTile, isMovingFromHere 
       {movingTile ? movingTile.value : (value > 0 && value)}
     </div>
   );
-}
+});
+
+GameCell.displayName = 'GameCell';
+
+export { GameCell };
+

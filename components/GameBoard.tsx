@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useMemo } from 'react';
 import { GameCell } from './GameCell';
 import { Board, NewTile, GridSize, MovingTile } from '@/lib/gameTypes';
 
@@ -22,6 +23,27 @@ export function GameBoard({
   onTouchStart,
   onTouchEnd,
 }: GameBoardProps) {
+  const cells = useMemo(() => {
+    return Array.from({ length: gridSize }, (_, r) =>
+      Array.from({ length: gridSize }, (_, c) => {
+        const value = board[r]?.[c] ?? 0;
+        const isNew = newTile ? newTile.r === r && newTile.c === c : false;
+        const isMerged = mergedCells.some((m) => m.r === r && m.c === c);
+        const movingTile = movingTiles.find((t) => t.toR === r && t.toC === c);
+        const isMovingFromHere = movingTiles.some((t) => t.fromR === r && t.fromC === c);
+
+        return {
+          key: `${r}-${c}`,
+          value,
+          isNew,
+          isMerged,
+          movingTile,
+          isMovingFromHere,
+        };
+      })
+    );
+  }, [board, gridSize, newTile, mergedCells, movingTiles]);
+
   return (
     <div
       className="grid-container"
@@ -33,25 +55,17 @@ export function GameBoard({
         gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
       }}
     >
-      {Array.from({ length: gridSize }).map((_, r) =>
-        Array.from({ length: gridSize }).map((_, c) => {
-          const value = board[r]?.[c] ?? 0;
-          const isNew = newTile ? newTile.r === r && newTile.c === c : false;
-          const isMerged = mergedCells.some((m) => m.r === r && m.c === c);
-          const movingTile = movingTiles.find(t => t.toR === r && t.toC === c);
-          const isMovingFromHere = movingTiles.some(t => t.fromR === r && t.fromC === c);
-
-          return (
-            <GameCell
-              key={`${r}-${c}`}
-              value={value}
-              isNew={isNew}
-              isMerged={isMerged}
-              movingTile={movingTile}
-              isMovingFromHere={isMovingFromHere}
-            />
-          );
-        })
+      {cells.map((row) =>
+        row.map((cell) => (
+          <GameCell
+            key={cell.key}
+            value={cell.value}
+            isNew={cell.isNew}
+            isMerged={cell.isMerged}
+            movingTile={cell.movingTile}
+            isMovingFromHere={cell.isMovingFromHere}
+          />
+        ))
       )}
     </div>
   );

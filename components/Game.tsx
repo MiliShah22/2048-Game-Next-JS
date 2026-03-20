@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useReducer } from 'react';
 import { Header } from './Header';
 import { GameBoard } from './GameBoard';
 import { GameOverOverlay } from './GameOverOverlay';
@@ -16,42 +16,94 @@ import { saveGame, loadGame, clearSave } from '@/lib/gamePersistence';
 import { audio } from '@/lib/audioManager';
 import { Volume2, VolumeX } from 'lucide-react';
 
+interface BoardState {
+  board: Board;
+  newTile: NewTile | null;
+  mergedCells: Array<{ r: number; c: number }>;
+  movingTiles: Array<MovingTile>;
+}
+
+type BoardAction =
+  | { type: 'RESET'; board: Board; newTile: NewTile | null; gridSize: GridSize }
+  | { type: 'MOVE'; direction: Direction; board: Board; mergedCells: Array<{ r: number; c: number }>; newTile: NewTile | null }
+  | { type: 'CLEAR_ANIMS' };
+
+const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
+  switch (action.type) {
+    case 'RESET':
+      return {
+        board: action.board,
+        newTile: action.newTile,
+        mergedCells: [],
+        movingTiles: [],
+      };
+    case 'MOVE':
+      return {
+        board: action.board,
+        newTile: action.newTile,
+        mergedCells: action.mergedCells,
+        movingTiles: [],
+      };
+    case 'CLEAR_ANIMS':
+      return {
+        ...state,
+        newTile: null,
+        mergedCells: [],
+        movingTiles: [],
+      };
+    default:
+      return state;
+  }
+};
+
 export function Game() {
   const [showMenu, setShowMenu] = useState(true);
   const [gridSize, setGridSize] = useState<GridSize>(4);
-  const [board, setBoard] = useState<Board>([]);
+  const [boardState, dispatch] = useReducer(boardReducer, {
+    board: [],
+    newTile: null,
+    mergedCells: [],
+    movingTiles: [],
+  });
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
-  const [newTile, setNewTile] = useState<NewTile | null>(null);
-  const [mergedCells, setMergedCells] = useState<Array<{ r: number; c: number }>>([]);
-  const [movingTiles, setMovingTiles] = useState<Array<MovingTile>>([]);
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
   const [swipeTrail, setSwipeTrail] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   // Use refs to avoid stale closures
-  const gameStateRef = useRef({ gameOver, showMenu, board, score, best, won, gridSize });
+  const gameStateRef = useRef({ gameOver, showMenu, boardState, score, best, won, gridSize });
   useEffect(() => {
-    gameStateRef.current = { gameOver, showMenu, board, score, best, won, gridSize, soundEnabled };
-  }, [gameOver, showMenu, board, score, best, won, gridSize, soundEnabled]);
+    gameStateRef.current = { gameOver, showMenu, boardState, score, best, won, gridSize, soundEnabled };
+  }, [gameOver, showMenu, boardState, score, best, won, gridSize, soundEnabled]);
+
+  // Toggle game-active class on body for CSS perf
+  useEffect(() => {
+    if (!showMenu && mounted) {
+      document.body.classList.add('game-active');
+    } else {
+      document.body.classList.remove('game-active');
+    }
+    return () => document.body.classList.remove('game-active');
+  }, [showMenu, mounted]);
 
   // Auto-save on state change
   useEffect(() => {
-    if (!showMenu && board.length > 0) {
+    if (!showMenu && boardState.board.length > 0) {
       const timeoutId = setTimeout(() => {
         saveCurrentGame();
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [board, score, gameOver, won, gridSize, soundEnabled, showMenu]);
+  }, [boardState, score, gameOver, won, gridSize, soundEnabled, showMenu]);
 
   // Save on page visibility change / pause
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && !showMenu && board.length > 0) {
+      if (document.hidden && !showMenu && boardState.board.length > 0) {
         saveCurrentGame();
       }
     };
@@ -61,7 +113,7 @@ export function Game() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', saveCurrentGame);
     };
-  }, [board.length, showMenu]);
+  }, [boardState.board.length, showMenu]);
 
   // Initialize best score on mount & audio
   useEffect(() => {
@@ -71,7 +123,7 @@ export function Game() {
     const initialBest = savedBest ? parseInt(savedBest, 10) : 0;
     setBest(initialBest);
     audio.setEnabled(soundEnabled);
-  }, []); // Note: soundEnabled defaults true
+  }, []);
 
   const handleNewSize = (size: GridSize) => {
     setGridSize(size);
@@ -84,7 +136,7 @@ export function Game() {
     if (savedState) {
       setGridSize(size);
       setShowMenu(false);
-      setBoard(savedState.board);
+      dispatch({ type: 'RESET', board: savedState.board, newTile: null, gridSize: size });
       setScore(savedState.score);
       setGameOver(savedState.gameOver);
       setWon(savedState.won);
@@ -92,12 +144,8 @@ export function Game() {
         setSoundEnabled(savedState.soundEnabled);
         audio.setEnabled(savedState.soundEnabled);
       }
-      // Resume - don't force new tiles
-      setNewTile(null);
-      setMergedCells([]);
       return;
     }
-    // Fallback to new if no save
     handleNewSize(size);
   };
 
@@ -106,7 +154,7 @@ export function Game() {
     if (!forceNew) {
       const savedState = loadGame(boardSize);
       if (savedState) {
-        setBoard(savedState.board);
+        dispatch({ type: 'RESET', board: savedState.board, newTile: null, gridSize: boardSize });
         setScore(savedState.score);
         setGameOver(savedState.gameOver);
         setWon(savedState.won);
@@ -114,27 +162,21 @@ export function Game() {
           setSoundEnabled(savedState.soundEnabled);
           audio.setEnabled(savedState.soundEnabled);
         }
-        // Add initial tiles for resume
         setTimeout(() => {
           const tile1 = addRandomTile(savedState.board);
-          setNewTile(tile1);
-          setMergedCells([]);
+          dispatch({ type: 'MOVE', direction: 'none' as Direction, board: [...savedState.board], mergedCells: [], newTile: tile1 });
         }, 100);
         return;
       }
     }
-    // New game fallback
     const newBoard = createEmptyBoard(boardSize);
     const tile1 = addRandomTile(newBoard);
     addRandomTile(newBoard);
     clearSave(boardSize);
-
-    setBoard(newBoard);
+    dispatch({ type: 'RESET', board: newBoard, newTile: tile1, gridSize: boardSize });
     setScore(0);
     setGameOver(false);
     setWon(false);
-    setNewTile(tile1);
-    setMergedCells([]);
   };
 
   const handleNewGame = () => {
@@ -142,7 +184,7 @@ export function Game() {
   };
 
   const saveCurrentGame = () => {
-    saveGame(gridSize, board, score, gameOver, won, soundEnabled);
+    saveGame(gridSize, boardState.board, score, gameOver, won, soundEnabled);
   };
 
   const handleBackToMenu = () => {
@@ -151,12 +193,12 @@ export function Game() {
   };
 
   const processMove = useCallback((direction: Direction) => {
-    const { gameOver: isGameOver, showMenu: isMenu, board: currentBoard, score: currentScore, best: currentBest, won: hasWon } = gameStateRef.current;
+    const { gameOver: isGameOver, showMenu: isMenu, boardState: currentState, score: currentScore, best: currentBest, won: hasWon } = gameStateRef.current;
 
     if (isGameOver || isMenu) return;
-    if (!currentBoard || currentBoard.length === 0) return;
+    if (!currentState.board || currentState.board.length === 0) return;
 
-    const boardCopy = currentBoard.map((row) => [...row]);
+    const boardCopy = currentState.board.map((row) => [...row]);
     const result = handleMove(boardCopy, direction);
 
     if (!result.moved) return;
@@ -166,7 +208,6 @@ export function Game() {
     let newScore = currentScore;
     let newWon = hasWon;
 
-    // Calculate score from merged cells
     result.mergedCells.forEach(({ r, c }) => {
       const tileValue = boardCopy[r][c];
       newScore += tileValue;
@@ -177,22 +218,19 @@ export function Game() {
     });
 
     const tile = addRandomTile(boardCopy);
-    setBoard(boardCopy);
+
+    // Batch board + tile updates
+    dispatch({ type: 'MOVE', direction, board: boardCopy, mergedCells: result.mergedCells, newTile: tile });
     setScore(newScore);
-    setNewTile(tile);
-    setMergedCells(result.mergedCells);
     audio.play('spawn');
-    // Clear moving tiles after animation (200ms)
-    setTimeout(() => setMovingTiles([]), 200);
+    setTimeout(() => dispatch({ type: 'CLEAR_ANIMS' }), 200);
     setWon(newWon);
 
-    // Update best score
     if (newScore > currentBest) {
       setBest(newScore);
       localStorage.setItem('best2048Dynamic', newScore.toString());
     }
 
-    // Check game states
     setTimeout(() => {
       if (newWon && !isGameOver) {
         setGameOver(true);
@@ -298,18 +336,18 @@ export function Game() {
           const newEnabled = !soundEnabled;
           setSoundEnabled(newEnabled);
           audio.setEnabled(newEnabled);
-          saveGame(gridSize, board, score, gameOver, won, newEnabled);
+          saveGame(gridSize, boardState.board, score, gameOver, won, newEnabled);
         }}
       />
 
       <div style={{ position: 'relative', width: '80%', height: 'auto' }}>
         <div className={`swipe-indicator ${swipeTrail || ''}`} />
         <GameBoard
-          board={board}
+          board={boardState.board}
           gridSize={gridSize}
-          newTile={newTile}
-          mergedCells={mergedCells}
-          movingTiles={movingTiles}
+          newTile={boardState.newTile}
+          mergedCells={boardState.mergedCells}
+          movingTiles={boardState.movingTiles}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         />
