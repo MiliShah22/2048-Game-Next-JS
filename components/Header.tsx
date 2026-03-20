@@ -36,7 +36,7 @@ export function Header({ score, best, gridSize, soundEnabled, onBack, onPause, o
         <div className="header-center">
           <span className="current-grid-label">{gridSize}x{gridSize}</span>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'contents' }}>
           {onPause && (
             <button
               className="pause-btn"
@@ -91,7 +91,7 @@ export function Header({ score, best, gridSize, soundEnabled, onBack, onPause, o
             </div>
           </div>
         </div>
-      </div>
+      </div >
       <style jsx>{`
         .theme-btn {
           width: 48px;
