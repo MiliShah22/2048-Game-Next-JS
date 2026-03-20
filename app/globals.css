@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -142,8 +142,11 @@
     font-family: 'Space Grotesk', sans-serif;
     background: var(--bg);
     color: var(--fg);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
   }
 
   body::before {
@@ -1399,6 +1402,58 @@
 
   .instructions {
     font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .grid-options {
+    grid-template-columns: 1fr !important;
+  }
+
+  .option-size {
+    font-size: 1.3rem;
+  }
+}
+
+/* ==================== Mobile Scroll Fix ==================== */
+@media (max-width: 768px) {
+  html {
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    overflow-y: auto !important;
+    height: auto;
+    min-height: 100vh;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .menu-screen {
+    overflow-y: auto;
+    height: 100dvh;
+  }
+
+  .game-container {
+    overflow-y: auto !important;
+    height: auto;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+
+  html,
+  body {
+    overflow-y: auto !important;
+    padding-bottom: 1rem;
+  }
+
+  .game-container {
+    padding: 12px;
+    gap: 16px;
   }
 }
 
